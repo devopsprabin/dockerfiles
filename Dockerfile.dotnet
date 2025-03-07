@@ -1,0 +1,42 @@
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
+WORKDIR /src
+COPY ["TravelBuddy.Api/TravelBuddy.Api.csproj", "TravelBuddy.Api/"]
+COPY ["TravelBuddy.Contracts/TravelBuddy.Contracts.csproj", "TravelBuddy.Contracts/"]
+COPY ["TravelBuddy.Data/TravelBuddy.Data.csproj", "TravelBuddy.Data/"]
+COPY ["TravelBuddy.Infrastructure/TravelBuddy.Infrastructure.csproj", "TravelBuddy.Infrastructure/"]
+RUN dotnet restore "TravelBuddy.Api/TravelBuddy.Api.csproj"
+COPY . .
+RUN dotnet build "TravelBuddy.Api/TravelBuddy.Api.csproj" -c Release -o /app/build
+RUN dotnet publish "TravelBuddy.Api/TravelBuddy.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "TravelBuddy.Api.dll"]
+
+
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
+WORKDIR /src
+COPY ["src/MeroHR.Backend/MeroHR.Backend.csproj", "src/MeroHR.Backend/"]
+COPY ["src/MeroHR.Backend.Helper/MeroHR.Backend.Helper.csproj", "src/MeroHR.Backend.Helper/"]
+COPY ["src/MeroHR.Backend.QueryParams/MeroHR.Backend.QueryParams.csproj", "src/MeroHR.Backend.QueryParams/"]
+COPY ["src/MeroHR.Backend.Repositories/MeroHR.Backend.Repositories.csproj", "src/MeroHR.Backend.Repositories/"]
+COPY ["src/MeroHR.Backend.Services/MeroHR.Backend.Services.csproj", "src/MeroHR.Backend.Services/"]
+
+RUN dotnet restore "src/MeroHR.Backend/MeroHR.Backend.csproj"
+COPY . .
+RUN dotnet build "src/MeroHR.Backend/MeroHR.Backend.csproj" -c Release -o /app/build
+RUN dotnet publish "src/MeroHR.Backend/MeroHR.Backend.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "MeroHR.Backend.dll"]

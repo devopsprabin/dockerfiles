@@ -1,0 +1,40 @@
+
+## Build
+FROM golang:1.22-alpine AS build
+
+RUN apk add build-base
+ARG GIT_TOKEN
+ARG BUILD_VERSION
+
+WORKDIR /app
+
+RUN apk add --no-cache git
+RUN apk add --no-cache make
+
+ENV GOPRIVATE=github.com/learn-microservices
+
+ENV GIT_TOKEN=$GIT_TOKEN
+ENV BUILD_VERSION=$BUILD_VERSION
+
+RUN echo -e "machine github.com login _ password $GIT_TOKEN" > ~/.netrc
+ENV CGO_ENABLED 1
+
+COPY . /app
+
+RUN make configure
+RUN make build.alpine
+
+RUN ls -ltr
+
+## Deploy
+# FROM gcr.io/distroless/base-debian10
+FROM golang:1.22-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/build/main /app/main
+COPY --from=build /app/config.yml /.mercanto/config.yml
+
+EXPOSE 9090
+
+ENTRYPOINT ["/app/main"]

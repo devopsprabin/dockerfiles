@@ -1,0 +1,20 @@
+FROM devopsprabin/node:22-alpine AS builder
+ARG _ENV
+WORKDIR /app
+
+COPY package.json .
+RUN pnpm install --only=production
+
+COPY . .
+
+RUN pnpm run build
+
+FROM devopsprabin/node:22-alpine
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 8080
+
+CMD [ "node", "dist/main" ]
